@@ -1,4 +1,4 @@
-# Laporan Proyek Machine Learning - Haikal
+# Laporan Proyek Machine Learning - Muhammad Haikal
 
 ## Domain Proyek
 
@@ -24,9 +24,23 @@ Untuk mencapai tujuan tersebut, solusi yang diajukan adalah sebagai berikut:
 
 ## Data Understanding
 
-Dataset yang digunakan adalah "pemetaan\_daerah\_banjir.csv". Dataset ini bersumber dari Kaggle ([Dataset Banjir Jakarta](https://www.kaggle.com/datasets/asfilianova/dataset-banjir)) dan berisi data historis pemantauan ketinggian air serta status banjir.
--   Jumlah sampel data awal: 624 baris
--   Jumlah fitur awal: 12 kolom
+Dataset yang digunakan adalah "pemetaan_daerah_banjir.csv". Dataset ini bersumber dari Kaggle ([Dataset Banjir Jakarta](https://www.kaggle.com/datasets/asfilianova/dataset-banjir)) dan berisi data historis pemantauan ketinggian air serta status banjir.
+
+### Kondisi Dataset Awal (Sebelum Pra-Pemrosesan)
+Sebelum dilakukan tahapan pra-pemrosesan, dataset "pemetaan_daerah_banjir.csv" memiliki kondisi sebagai berikut:
+-   **Jumlah Sampel dan Fitur**: Dataset awal terdiri dari 624 baris (sampel) dan 12 kolom (fitur).
+-   **Tipe Data**: Berdasarkan output dari `data.info()` pada *notebook* (sebelum proses *cleaning*), teridentifikasi tipe data sebagai berikut:
+    * `object`: 'Tanggal', 'Waktu', 'Unnamed: 10', 'Unnamed: 11'
+    * `int64`: 'Katulampa', 'Pos Depok', 'Status Banjir'
+    * `float64`: 'Manggarai', 'Istiqlal', 'Jembatan Merah', 'Flusing Ancol', 'Marina Ancol'
+-   **Nilai Hilang (Missing Values)**: Pengecekan awal menggunakan `data.isnull().sum()` menunjukkan adanya nilai yang hilang pada beberapa kolom fitur numerik ketinggian air:
+    * 'Manggarai': 1 nilai hilang (sekitar 0.16% dari total data)
+    * 'Istiqlal': 2 nilai hilang (sekitar 0.32% dari total data)
+    * 'Jembatan Merah': 5 nilai hilang (sekitar 0.80% dari total data)
+    * 'Flusing Ancol': 1 nilai hilang (sekitar 0.16% dari total data)
+    * 'Marina Ancol': 1 nilai hilang (sekitar 0.16% dari total data)
+    Selain itu, kolom 'Unnamed: 10' memiliki 620 nilai hilang (sekitar 99.36%) dan 'Unnamed: 11' memiliki 621 nilai hilang (sekitar 99.52%), yang menunjukkan bahwa kolom-kolom ini sebagian besar kosong dan tidak informatif untuk seluruh dataset.
+
 
 ### Variabel-variabel pada dataset awal adalah sebagai berikut:
 * `Tanggal`: Tanggal pencatatan data (tipe object). Merupakan tanggal spesifik saat data ketinggian air dan status banjir dicatat.
@@ -39,34 +53,50 @@ Dataset yang digunakan adalah "pemetaan\_daerah\_banjir.csv". Dataset ini bersum
 * `Flusing Ancol`: Ketinggian air di pos pemantauan Flusing Ancol dalam satuan cm (tipe float64). Area ini terkait dengan sistem drainase menuju laut.
 * `Marina Ancol`: Ketinggian air di pos pemantauan Marina Ancol dalam satuan cm (tipe float64). Merepresentasikan kondisi di area pesisir.
 * `Status Banjir`: Variabel target yang menunjukkan status banjir (tipe int64); 0 berarti Tidak Banjir, 1 berarti Banjir.
-* `Unnamed: 10`: Kolom tanpa nama yang berisi data tambahan seperti keterangan sumber atau catatan level siaga (tipe object). 
+* `Unnamed: 10`: Kolom tanpa nama yang berisi data tambahan seperti keterangan sumber atau catatan level siaga (tipe object).
 * `Unnamed: 11`: Kolom tanpa nama yang berisi data tambahan serupa dengan `Unnamed: 10`, beberapa baris saja yang berisi level siaga banjir (tipe object), sisanya adalah kosong.
 
 ### Exploratory Data Analysis (EDA)
-EDA dilakukan untuk mendapatkan pemahaman yang lebih baik tentang data:
-1.  **Informasi Umum Data**: `data.info()` digunakan untuk melihat tipe data setiap kolom dan jumlah nilai non-null.
-2.  **Statistik Deskriptif**: `data.describe()` digunakan untuk melihat statistik dasar fitur numerik.
-3.  **Pengecekan Nilai Hilang**: `data.isnull().sum()` digunakan untuk mengidentifikasi jumlah nilai yang hilang pada setiap fitur. Ditemukan nilai hilang pada kolom 'Manggarai', 'Istiqlal', 'Jembatan Merah', 'Flusing Ancol', dan 'Marina Ancol', serta sebagian besar nilai hilang pada 'Unnamed: 10' dan 'Unnamed: 11'.
-4.  **Distribusi Fitur Numerik**: Visualisasi histogram untuk setiap fitur numerik guna memahami distribusinya.
-    5.  **Distribusi Variabel Target (`Status Banjir`)**: Visualisasi countplot menunjukkan distribusi kelas pada variabel target 'Status Banjir'.
-    6.  **Heatmap Korelasi**: Untuk melihat hubungan linear antar fitur numerik setelah pembersihan awal.
-    ## Data Preparation
-Tahapan persiapan data yang dilakukan adalah sebagai berikut:
-1.  **Pembersihan Kolom Tidak Relevan**: Kolom 'Unnamed: 10' dan 'Unnamed: 11' dihapus karena sebagian besar nilainya kosong dan kontennya (seperti keterangan sumber atau level siaga) tidak akan digunakan secara langsung dalam model prediksi numerik ini.
-2.  **Penanganan Missing Values**: Nilai yang hilang pada kolom 'Manggarai', 'Istiqlal', 'Jembatan Merah', 'Flusing Ancol', dan 'Marina Ancol' diisi menggunakan nilai median dari masing-masing kolom. Median dipilih karena lebih robust terhadap nilai ekstrem (outlier) yang mungkin ada dalam data ketinggian air.
-3.  **Penghapusan Fitur Waktu**: Kolom 'Tanggal' dan 'Waktu' dihapus dari dataset fitur. Meskipun informasi temporal ini berpotensi berguna, untuk model awal dan penyederhanaan, fitur ini dihilangkan agar fokus pada fitur numerik ketinggian air.
-4.  **Pemisahan Fitur dan Target**: Dataset dibagi menjadi variabel fitur (X) yang berisi data ketinggian air dan variabel target (y) yang berisi 'Status Banjir'.
-5.  **Pembagian Data (Train-Test Split)**: Data dibagi menjadi data latih (80%) dan data uji (20%) menggunakan `train_test_split` dari `sklearn.model_selection`. Penggunaan `random_state=42` memastikan reproduktifitas hasil pembagian. Parameter `stratify=y` juga digunakan untuk memastikan proporsi kelas target ('Status Banjir') sama pada data latih dan data uji, yang penting jika ada ketidakseimbangan kelas.
-6.  **Penskalaan Fitur (Feature Scaling)**: Fitur-fitur numerik dalam data latih dan data uji diskalakan menggunakan `MinMaxScaler`. Penskalaan ini bertujuan untuk mengubah skala fitur ke rentang 0-1. Scaler di-'fit' *hanya* pada data latih (`X_train`) dan kemudian digunakan untuk mentransformasi baik data latih (`X_train`) maupun data uji (`X_test`). Ini mencegah kebocoran informasi dari data uji ke proses training dan memastikan semua fitur memiliki skala yang seragam, yang penting untuk algoritma seperti KNN dan SVM.
+EDA dilakukan untuk mendapatkan pemahaman yang lebih baik tentang data (setelah pembersihan kolom tidak relevan dan penanganan nilai hilang):
+1.  **Informasi Umum Data**: `data.info()` digunakan untuk melihat tipe data setiap kolom dan jumlah nilai non-null setelah pembersihan awal.
+2.  **Statistik Deskriptif**: `data.describe()` digunakan untuk melihat statistik dasar fitur numerik yang akan digunakan dalam pemodelan.
+3.  **Distribusi Fitur Numerik**: Visualisasi histogram untuk setiap fitur numerik ('Katulampa', 'Pos Depok', 'Manggarai', 'Istiqlal', 'Jembatan Merah', 'Flusing Ancol', 'Marina Ancol') guna memahami distribusinya.
+4.  **Distribusi Variabel Target (`Status Banjir`)**: Visualisasi countplot menunjukkan distribusi kelas pada variabel target 'Status Banjir' untuk melihat apakah ada ketidakseimbangan kelas.
+5.  **Heatmap Korelasi**: Untuk melihat hubungan linear antar fitur numerik yang telah dibersihkan.
+6.  **Pairplot**: Untuk melihat hubungan antar pasangan fitur dan distribusi masing-masing fitur, juga dapat membantu mengidentifikasi *outlier* secara visual, meskipun dalam proyek ini *outlier* tidak ditangani secara khusus selain melalui penskalaan.
+
+## Data Preparation
+Tahapan persiapan data yang dilakukan adalah sebagai berikut (sesuai urutan implementasi pada *notebook*):
+1.  **Pembersihan Kolom Tidak Relevan**: Kolom 'Unnamed: 10' dan 'Unnamed: 11' dihapus. Alasan: Kolom-kolom ini memiliki persentase nilai hilang yang sangat tinggi (lebih dari 99%) dan kontennya (seperti keterangan sumber atau catatan level siaga yang tidak konsisten) tidak akan digunakan secara langsung dalam model prediksi numerik ini.
+2.  **Penghapusan Fitur Waktu**: Kolom 'Tanggal' dan 'Waktu' juga dihapus. Alasan: Meskipun informasi temporal berpotensi berguna, untuk model awal ini dan penyederhanaan, fitur ini dihilangkan agar fokus pada fitur numerik ketinggian air yang lebih langsung memengaruhi status banjir. Analisis time series tidak termasuk dalam cakupan proyek ini.
+3.  **Penanganan Missing Values**: Nilai yang hilang pada kolom 'Manggarai', 'Istiqlal', 'Jembatan Merah', 'Flusing Ancol', dan 'Marina Ancol' diisi menggunakan nilai median dari masing-masing kolom. Alasan: Jumlah nilai yang hilang pada kolom-kolom ini relatif kecil (kurang dari 1% per kolom). Median dipilih sebagai strategi imputasi karena lebih robust terhadap nilai ekstrem (*outlier*) yang mungkin ada dalam data ketinggian air dibandingkan dengan mean (rata-rata).
+4.  **Pemisahan Fitur dan Target**: Dataset dibagi menjadi variabel fitur (X) yang berisi data ketinggian air dari semua pos pemantauan yang tersisa, dan variabel target (y) yang berisi kolom 'Status Banjir'.
+5.  **Pembagian Data (Train-Test Split)**: Data fitur (X) dan target (y) dibagi menjadi data latih (80%) dan data uji (20%) menggunakan `train_test_split` dari `sklearn.model_selection`. Penggunaan `random_state=42` memastikan bahwa pembagian data dapat direproduksi. Parameter `stratify=y` digunakan untuk memastikan proporsi kelas pada variabel target ('Status Banjir') sama antara data latih dan data uji, hal ini penting untuk menghindari bias jika terdapat ketidakseimbangan kelas. **Langkah ini krusial dilakukan sebelum penskalaan fitur untuk mencegah kebocoran informasi (data leakage) dari set pengujian ke dalam proses pelatihan model.**
+6.  **Penskalaan Fitur (Feature Scaling)**: Setelah pembagian data, fitur-fitur numerik dalam data latih (`X_train`) dan data uji (`X_test`) diskalakan menggunakan `MinMaxScaler` dari `sklearn.preprocessing`. Alasan: Penskalaan ini mentransformasi nilai setiap fitur ke rentang antara 0 dan 1, sehingga semua fitur memiliki skala yang seragam. Hal ini penting untuk algoritma seperti KNN dan SVM yang sensitif terhadap skala fitur. **Prosesnya adalah: *scaler* diinisialisasi, kemudian metode `fit_transform()` diterapkan *hanya* pada data latih (`X_train`) untuk mempelajari parameter skala (nilai minimum dan maksimum dari setiap fitur dalam data latih). Setelah itu, metode `transform()` digunakan untuk menerapkan penskalaan tersebut baik pada `X_train` maupun pada `X_test` menggunakan parameter yang telah dipelajari dari `X_train`.** Pendekatan ini memastikan bahwa data uji tetap "tak terlihat" selama proses pembelajaran parameter skala, sehingga evaluasi model pada data uji menjadi lebih valid dan mencerminkan bagaimana model akan berperforma pada data baru yang belum pernah dilihat sebelumnya.
 
 ## Modeling
 
-Lima algoritma klasifikasi machine learning diimplementasikan dan dilatih menggunakan data training yang telah dipersiapkan:
-1.  **K-Nearest Neighbors (KNN)**: Algoritma non-parametrik yang mengklasifikasikan instance baru berdasarkan mayoritas kelas dari 'k' tetangga terdekatnya. Parameter yang digunakan adalah `n_neighbors=5`.
-2.  **Decision Tree (DT)**: Model berbasis pohon yang membuat keputusan berdasarkan serangkaian aturan. Parameter `random_state=42` digunakan untuk reproduktifitas.
-3.  **Random Forest (RF)**: Metode ensemble yang membangun banyak decision tree. Parameter yang digunakan adalah `n_estimators=100` (default) dan `random_state=42`.
-4.  **Support Vector Machine (SVM)**: Algoritma yang mencari hyperplane terbaik untuk memisahkan kelas. Menggunakan kernel default (RBF) dan `random_state=42`.
-5.  **Naive Bayes (NB)**: Algoritma klasifikasi probabilistik. Menggunakan `GaussianNB`.
+Lima algoritma klasifikasi machine learning diimplementasikan dan dilatih menggunakan data training (`X_train` yang telah diskalakan dan `y_train`) yang telah dipersiapkan:
+
+1.  **K-Nearest Neighbors (KNN)**:
+    * **Mekanisme Kerja**: KNN adalah algoritma pembelajaran berbasis instans yang mengklasifikasikan sampel baru berdasarkan mayoritas kelas dari 'k' tetangga terdekatnya dalam ruang fitur. Jarak antar sampel biasanya dihitung menggunakan metrik jarak Euclidean. Saat prediksi, KNN akan mencari 'k' sampel dari data latih yang paling mirip (jarak terdekat) dengan sampel baru, kemudian kelas mayoritas dari 'k' tetangga tersebut akan menjadi prediksi kelas untuk sampel baru.
+    * **Parameter Utama**: `n_neighbors=5`. Parameter `n_neighbors` (k) menentukan jumlah tetangga yang dipertimbangkan. Pemilihan nilai 'k' bersifat krusial; nilai 'k' yang terlalu kecil dapat membuat model sensitif terhadap *noise* dan *overfitting*, sedangkan nilai 'k' yang terlalu besar dapat menghaluskan batas keputusan secara berlebihan dan menyebabkan *underfitting*. Nilai 5 dipilih sebagai nilai awal yang umum digunakan dan sering memberikan keseimbangan yang baik antara bias dan varians untuk banyak dataset.
+
+2.  **Decision Tree (DT)**:
+    * **Mekanisme Kerja**: Decision Tree membangun model klasifikasi atau regresi dalam bentuk struktur pohon. Algoritma ini bekerja dengan cara mempartisi ruang fitur secara rekursif menjadi subset-subset yang lebih kecil berdasarkan nilai fitur tertentu pada setiap *node* keputusan. Proses pemecahan ini berlanjut hingga mencapai *node* daun (*leaf node*) yang merepresentasikan label kelas atau nilai prediksi, atau hingga kriteria pemberhentian terpenuhi (misalnya, kedalaman maksimum pohon atau jumlah minimum sampel pada *leaf node*). Pemisahan pada setiap *node* dilakukan dengan mencari fitur dan ambang batas yang paling baik dalam memisahkan kelas, biasanya menggunakan metrik seperti Gini impurity atau information gain untuk memaksimalkan kemurnian kelas pada *node* anak.
+    * **Parameter Utama**: `random_state=42`. Parameter ini digunakan untuk mengontrol keacakan dalam proses pembentukan pohon (misalnya, dalam pemilihan fitur jika beberapa fitur memiliki *gain* yang sama atau dalam pemecahan pada *node* jika ada beberapa pemecahan yang sama baiknya). Pengaturan `random_state` memastikan bahwa hasil pembentukan pohon dan pelatihan model dapat direproduksi setiap kali kode dijalankan. Parameter lain seperti kedalaman maksimum pohon (`max_depth`) atau jumlah minimum sampel untuk melakukan pemisahan (`min_samples_split`) tidak diatur secara spesifik dalam implementasi ini, sehingga menggunakan nilai default dari pustaka `sklearn`.
+
+3.  **Random Forest (RF)**:
+    * **Mekanisme Kerja**: Random Forest adalah metode *ensemble learning* yang bekerja dengan membangun sejumlah besar Decision Tree secara acak selama proses pelatihan. Setiap pohon dalam *forest* dilatih pada subset acak dari data latih (menggunakan teknik *bootstrap sampling*, yaitu pengambilan sampel dengan penggantian dari data latih asli) dan pada setiap pemisahan *node*, hanya subset acak dari fitur yang dipertimbangkan untuk menentukan pemisahan terbaik (ini menambah keragaman). Untuk klasifikasi, prediksi akhir ditentukan oleh mayoritas suara (voting) dari semua pohon individu. Pendekatan ini membantu mengurangi *overfitting* yang sering terjadi pada Decision Tree tunggal dan meningkatkan generalisasi model dengan mengurangi varians.
+    * **Parameter Utama**: `n_estimators=100` dan `random_state=42`. `n_estimators` menentukan jumlah pohon yang akan dibangun dalam *forest*; nilai 100 adalah nilai default yang sering memberikan performa yang baik tanpa menjadi terlalu berat secara komputasi. Semakin banyak pohon cenderung meningkatkan performa hingga titik tertentu, namun juga meningkatkan waktu pelatihan. `random_state=42` memastikan bahwa proses pembentukan *forest* yang melibatkan keacakan (seperti *bootstrap sampling* dan pemilihan fitur acak pada setiap *split*) dapat direproduksi, sehingga hasil pelatihan model konsisten.
+
+4.  **Support Vector Machine (SVM)**:
+    * **Mekanisme Kerja**: SVM adalah algoritma klasifikasi yang bertujuan untuk menemukan *hyperplane* (batas keputusan) terbaik yang memisahkan dua kelas data dalam ruang fitur dengan margin terbesar. Margin didefinisikan sebagai jarak antara *hyperplane* dan titik data terdekat dari masing-masing kelas (titik-titik ini disebut *support vectors*). Dengan memaksimalkan margin, SVM berusaha mencapai generalisasi yang baik dan robust terhadap *outlier*. Untuk kasus data yang tidak dapat dipisahkan secara linear dalam ruang fitur aslinya, SVM dapat menggunakan fungsi kernel (seperti RBF, polinomial, atau sigmoid) untuk memetakan data ke ruang dimensi yang lebih tinggi di mana pemisahan linear mungkin dapat dilakukan.
+    * **Parameter Utama**: Menggunakan kernel default yaitu RBF (Radial Basis Function) dan `random_state=42`. Kernel RBF adalah pilihan umum karena fleksibilitasnya dalam menangani hubungan non-linear antar fitur. Parameter `C` (parameter regularisasi) dan `gamma` (parameter kernel) tidak diatur secara spesifik, sehingga menggunakan nilai default. `random_state` digunakan jika ada aspek keacakan dalam proses optimasi internal algoritma SVM di `sklearn` (meskipun SVM pada dasarnya deterministik untuk kernel tertentu, beberapa optimasi mungkin memiliki komponen acak).
+
+5.  **Naive Bayes (NB)**:
+    * **Mekanisme Kerja**: Naive Bayes adalah keluarga algoritma klasifikasi probabilistik yang didasarkan pada Teorema Bayes. Disebut "naive" karena membuat asumsi (yang seringkali merupakan penyederhanaan kuat) bahwa semua fitur adalah independen satu sama lain, mengingat kelas variabel. `GaussianNB` adalah salah satu varian yang digunakan ketika fitur-fitur bersifat kontinu dan diasumsikan terdistribusi secara Gaussian (normal) dalam setiap kelas. Algoritma ini menghitung probabilitas posterior untuk setiap kelas ($P(\text{kelas} | \text{fitur})$) berdasarkan probabilitas prior kelas ($P(\text{kelas})$) dan probabilitas kondisional dari fitur-fitur ($P(\text{fitur} | \text{kelas})$), kemudian memilih kelas dengan probabilitas posterior tertinggi sebagai prediksi.
+    * **Parameter Utama**: Menggunakan `GaussianNB` karena fitur-fitur dalam dataset ini (ketinggian air) adalah numerik kontinu. `GaussianNB` tidak memiliki banyak parameter utama yang perlu di-tuning secara manual untuk kasus *baseline*; ia mempelajari parameter distribusi Gaussian (mean dan standar deviasi) dari data latih untuk setiap fitur per kelas.
 
 Setiap model dilatih pada `X_train` yang telah diskalakan dan `y_train`.
 
